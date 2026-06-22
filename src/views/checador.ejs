@@ -1,0 +1,54 @@
+<%- include('partials/header', { usuario: usuario }) %>
+
+<div class="card">
+  <h1>Hola, <%= usuario.nombre %></h1>
+  <p class="muted">Número de empleado: <%= usuario.numeroEmpleado %></p>
+
+  <% if (mensaje) { %>
+    <div class="alert alert-<%= mensaje.tipo === 'ok' ? 'success' : 'error' %>">
+      <%= mensaje.texto %>
+    </div>
+  <% } %>
+
+  <div class="reloj" id="reloj">--:--:--</div>
+
+  <form action="/checar" method="POST" class="checar-form">
+    <input type="hidden" name="tipo" value="<%= siguiente %>" />
+    <button type="submit" class="btn btn-big <%= siguiente === 'entrada' ? 'btn-entrada' : 'btn-salida' %>">
+      Registrar <%= siguiente === 'entrada' ? 'ENTRADA' : 'SALIDA' %>
+    </button>
+  </form>
+
+  <h2>Tus registros de hoy</h2>
+  <% if (registrosHoy.length === 0) { %>
+    <p class="muted">Aún no tienes registros el día de hoy.</p>
+  <% } else { %>
+    <table class="tabla">
+      <thead>
+        <tr><th>Tipo</th><th>Hora</th></tr>
+      </thead>
+      <tbody>
+        <% registrosHoy.forEach(function (r) { %>
+          <tr>
+            <td>
+              <span class="badge badge-<%= r.tipo %>"><%= r.tipo %></span>
+            </td>
+            <td><%= r.hora %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  // Reloj en vivo (solo visual).
+  function tick() {
+    document.getElementById('reloj').textContent =
+      new Date().toLocaleTimeString('es-MX');
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+<%- include('partials/footer') %>
