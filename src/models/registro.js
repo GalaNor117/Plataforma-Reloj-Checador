@@ -67,10 +67,44 @@ async function resumenMensual(empleadoId, anio, mes) {
   return rows;
 }
 
+// Resumen GENERAL: todos los empleados del mes (o de un día concreto si se
+// pasa `dia`). Una fila por empleado y día, con número y nombre del empleado.
+async function resumenGeneral(anio, mes, dia) {
+  const params = [anio, mes, TZ];
+  let filtroDia = '';
+  if (dia) {
+    params.push(dia); // $4
+    filtroDia = `AND date_part('day', r.marcado_en AT TIME ZONE $3) = $4`;
+  }
+
+  const { rows } = await db.query(
+    `SELECT
+        e.numero_empleado,
+        e.nombre,
+        to_char((r.marcado_en AT TIME ZONE $3)::date, 'YYYY-MM-DD') AS dia,
+        to_char(
+          MIN(r.marcado_en AT TIME ZONE $3) FILTER (WHERE r.tipo = 'entrada'),
+          'HH24:MI:SS') AS hora_entrada,
+        to_char(
+          MAX(r.marcado_en AT TIME ZONE $3) FILTER (WHERE r.tipo = 'salida'),
+          'HH24:MI:SS') AS hora_salida
+     FROM registros r
+     JOIN empleados e ON e.id = r.empleado_id
+     WHERE date_part('year',  r.marcado_en AT TIME ZONE $3) = $1
+       AND date_part('month', r.marcado_en AT TIME ZONE $3) = $2
+       ${filtroDia}
+     GROUP BY e.numero_empleado, e.nombre, (r.marcado_en AT TIME ZONE $3)::date
+     ORDER BY e.nombre, (r.marcado_en AT TIME ZONE $3)::date`,
+    params
+  );
+  return rows;
+}
+
 module.exports = {
   registrar,
   ultimoDeHoy,
   registrosDeHoy,
   resumenMensual,
+  resumenGeneral,
   TZ,
 };

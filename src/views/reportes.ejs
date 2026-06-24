@@ -1,47 +1,68 @@
 <%- include('partials/header', { usuario: usuario }) %>
 
+<%
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+%>
+
 <div class="card">
-  <h1>Reporte mensual (Excel)</h1>
+  <h1>Reporte general (Excel)</h1>
   <p class="muted">
-    Genera un archivo Excel con los registros del mes: día, hora de ingreso y hora de egreso.
+    Asistencia de <strong>todos los trabajadores</strong>. Incluye número y nombre del
+    empleado, día, hora de ingreso y hora de egreso. Elige el mes completo o un día concreto.
   </p>
 
-  <% if (error) { %>
-    <div class="alert alert-error"><%= error %></div>
-  <% } %>
-
-  <form action="/reportes/descargar" method="GET" class="form-grid">
-    <% if (usuario.rol === 'admin') { %>
-      <div>
-        <label for="empleadoId">Empleado</label>
-        <select id="empleadoId" name="empleadoId" required>
-          <% empleados.forEach(function (e) { %>
-            <option value="<%= e.id %>">
-              <%= e.nombre %> (No. <%= e.numero_empleado %>)
-            </option>
-          <% }); %>
-        </select>
-      </div>
-    <% } %>
-
+  <form action="/reportes/general" method="GET" class="form-grid">
     <div>
-      <label for="mes">Mes</label>
-      <select id="mes" name="mes" required>
-        <% const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; %>
+      <label for="g_mes">Mes</label>
+      <select id="g_mes" name="mes" required>
         <% meses.forEach(function (m, i) { %>
           <option value="<%= i + 1 %>" <%= (i + 1) === mesActual ? 'selected' : '' %>><%= m %></option>
         <% }); %>
       </select>
     </div>
-
     <div>
-      <label for="anio">Año</label>
-      <input type="number" id="anio" name="anio" min="2000" max="2100"
-             value="<%= anioActual %>" required />
+      <label for="g_anio">Año</label>
+      <input type="number" id="g_anio" name="anio" min="2000" max="2100" value="<%= anioActual %>" required />
     </div>
-
+    <div>
+      <label for="g_dia">Día (opcional)</label>
+      <input type="number" id="g_dia" name="dia" min="1" max="31" placeholder="Todo el mes" />
+    </div>
     <div class="form-grid-action">
-      <button type="submit" class="btn btn-primary">⬇ Descargar Excel</button>
+      <button type="submit" class="btn btn-primary">⬇ Descargar reporte general</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h1>Reporte por trabajador (Excel)</h1>
+  <p class="muted">
+    Asistencia mensual de un <strong>trabajador específico</strong>: día, hora de ingreso y hora de egreso.
+  </p>
+
+  <form action="/reportes/particular" method="GET" class="form-grid">
+    <div>
+      <label for="p_empleado">Trabajador</label>
+      <select id="p_empleado" name="empleadoId" required>
+        <% empleados.forEach(function (e) { %>
+          <option value="<%= e.id %>"><%= e.nombre %> (No. <%= e.numero_empleado %>)</option>
+        <% }); %>
+      </select>
+    </div>
+    <div>
+      <label for="p_mes">Mes</label>
+      <select id="p_mes" name="mes" required>
+        <% meses.forEach(function (m, i) { %>
+          <option value="<%= i + 1 %>" <%= (i + 1) === mesActual ? 'selected' : '' %>><%= m %></option>
+        <% }); %>
+      </select>
+    </div>
+    <div>
+      <label for="p_anio">Año</label>
+      <input type="number" id="p_anio" name="anio" min="2000" max="2100" value="<%= anioActual %>" required />
+    </div>
+    <div class="form-grid-action">
+      <button type="submit" class="btn btn-primary">⬇ Descargar reporte por trabajador</button>
     </div>
   </form>
 </div>

@@ -10,7 +10,7 @@ REM ============================================================
 REM --- CONFIGURACION (edita estas lineas) ----------------------
 set SERVICIO=RelojChecador
 set NODE_EXE=C:\Program Files\nodejs\node.exe
-set APP_DIR=C:\apps\reloj-checador
+set APP_DIR=C:\Apps\Plataforma-Reloj-Checador
 set APP_JS=%APP_DIR%\src\server.js
 REM -------------------------------------------------------------
 
