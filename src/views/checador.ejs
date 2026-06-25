@@ -1,0 +1,60 @@
+<%- include('partials/header', { usuario: null }) %>
+
+<div class="card card-narrow">
+  <h1>Registra tu asistencia</h1>
+  <p class="muted">Escribe tu contraseña para marcar tu entrada o salida.</p>
+
+  <div class="reloj" id="reloj">--:--:--</div>
+
+  <% if (resultado && resultado.ok) { %>
+    <div class="alert alert-success">
+      ✓ <strong><%= resultado.empleado %></strong> (No. <%= resultado.numero %>)<br />
+      <strong><%= resultado.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' %></strong>
+      registrada a las <strong><%= resultado.hora %></strong>.
+    </div>
+  <% } else if (resultado && !resultado.ok) { %>
+    <div class="alert alert-error"><%= resultado.texto %></div>
+  <% } %>
+
+  <form action="/checar" method="POST" class="checar-form">
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" name="password" autofocus required
+           autocomplete="off" inputmode="text" />
+    <button type="submit" class="btn btn-big btn-primary">Registrar</button>
+  </form>
+
+  <% if (resultado && resultado.ok && resultado.registrosHoy.length) { %>
+    <h2>Registros de hoy</h2>
+    <table class="tabla">
+      <thead>
+        <tr><th>Tipo</th><th>Hora</th></tr>
+      </thead>
+      <tbody>
+        <% resultado.registrosHoy.forEach(function (r) { %>
+          <tr>
+            <td><span class="badge badge-<%= r.tipo %>"><%= r.tipo %></span></td>
+            <td><%= r.hora %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  // Reloj en vivo (solo visual).
+  function tick() {
+    document.getElementById('reloj').textContent =
+      new Date().toLocaleTimeString('es-MX');
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Limpia el campo al volver a la página (para el siguiente trabajador).
+  window.addEventListener('pageshow', function () {
+    var p = document.getElementById('password');
+    if (p) { p.value = ''; p.focus(); }
+  });
+</script>
+
+<%- include('partials/footer') %>
