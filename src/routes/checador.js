@@ -1,63 +1,52 @@
 'use strict';
 
 const express = require('express');
+const Empleado = require('../models/empleado');
 const Registro = require('../models/registro');
-const { requireLogin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Pantalla principal del checador.
-router.get('/', requireLogin, async (req, res, next) => {
-  try {
-    const empleadoId = req.session.usuario.id;
-    const ultimo = await Registro.ultimoDeHoy(empleadoId);
-    const registrosHoy = await Registro.registrosDeHoy(empleadoId);
-
-    // La siguiente marca sugerida: si el último evento fue 'entrada',
-    // toca 'salida'; en cualquier otro caso, 'entrada'.
-    const siguiente = ultimo && ultimo.tipo === 'entrada' ? 'salida' : 'entrada';
-
-    res.render('checador', {
-      usuario: req.session.usuario,
-      registrosHoy,
-      siguiente,
-      mensaje: req.session.mensaje || null,
-    });
-    req.session.mensaje = null;
-  } catch (err) {
-    next(err);
-  }
+// Pantalla principal del checador (pública).
+router.get('/', (req, res) => {
+  res.render('checador', { resultado: null });
 });
 
-// Registra una marca de entrada o salida.
-router.post('/checar', requireLogin, async (req, res, next) => {
+// Registra una marca usando SOLO la contraseña del trabajador.
+// El sistema identifica al empleado por su contraseña y alterna
+// automáticamente entre entrada y salida.
+router.post('/checar', async (req, res, next) => {
   try {
-    const empleadoId = req.session.usuario.id;
-    const tipo = req.body.tipo === 'salida' ? 'salida' : 'entrada';
+    const password = req.body.password || '';
+    const empleado = await Empleado.autenticarPorPassword(password);
 
-    // Validación simple: evita dos marcas iguales seguidas en el mismo día.
-    const ultimo = await Registro.ultimoDeHoy(empleadoId);
-    if (ultimo && ultimo.tipo === tipo) {
-      req.session.mensaje = {
-        tipo: 'error',
-        texto:
-          tipo === 'entrada'
-            ? 'Ya registraste una entrada. Marca tu salida primero.'
-            : 'Ya registraste una salida. Marca una entrada primero.',
-      };
-      return res.redirect('/');
+    if (!empleado) {
+      return res.status(401).render('checador', {
+        resultado: {
+          ok: false,
+          texto: 'Contraseña no reconocida. Verifica e intenta de nuevo.',
+        },
+      });
     }
 
-    const registro = await Registro.registrar(empleadoId, tipo);
+    const ultimo = await Registro.ultimoDeHoy(empleado.id);
+    const tipo = ultimo && ultimo.tipo === 'entrada' ? 'salida' : 'entrada';
+
+    const registro = await Registro.registrar(empleado.id, tipo);
     const hora = new Date(registro.marcado_en).toLocaleTimeString('es-MX', {
       timeZone: Registro.TZ,
     });
+    const registrosHoy = await Registro.registrosDeHoy(empleado.id);
 
-    req.session.mensaje = {
-      tipo: 'ok',
-      texto: `Se registró tu ${tipo} a las ${hora}.`,
-    };
-    res.redirect('/');
+    res.render('checador', {
+      resultado: {
+        ok: true,
+        empleado: empleado.nombre,
+        numero: empleado.numero_empleado,
+        tipo,
+        hora,
+        registrosHoy,
+      },
+    });
   } catch (err) {
     next(err);
   }

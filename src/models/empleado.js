@@ -47,10 +47,36 @@ async function verificarPassword(empleado, password) {
   return bcrypt.compare(password, empleado.password_hash);
 }
 
+// Identifica al trabajador SOLO a partir de su contraseña (modo kiosko del
+// checador). Recorre los empleados activos y compara el hash. Para que sea
+// inequívoco, las contraseñas deben ser únicas (se valida al dar de alta).
+async function autenticarPorPassword(password) {
+  if (!password) return null;
+  const { rows } = await db.query(
+    `SELECT * FROM empleados WHERE activo = TRUE`
+  );
+  for (const emp of rows) {
+    if (await bcrypt.compare(password, emp.password_hash)) return emp;
+  }
+  return null;
+}
+
+// ¿Alguna contraseña existente coincide con esta? (para mantenerlas únicas)
+async function passwordEnUso(password) {
+  if (!password) return false;
+  const { rows } = await db.query(`SELECT password_hash FROM empleados`);
+  for (const r of rows) {
+    if (await bcrypt.compare(password, r.password_hash)) return true;
+  }
+  return false;
+}
+
 module.exports = {
   crear,
   buscarPorNumero,
   buscarPorId,
   listar,
   verificarPassword,
+  autenticarPorPassword,
+  passwordEnUso,
 };

@@ -2,24 +2,21 @@
 
 const express = require('express');
 const Empleado = require('../models/empleado');
-const { requireLogin, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Todas las rutas de este módulo requieren administrador.
-router.use(requireLogin, requireAdmin);
+// NOTA: esta sección se accede directamente por URL (no hay menú ni login).
 
 // Lista de empleados + formulario de alta.
 router.get('/admin/empleados', async (req, res, next) => {
   try {
     const empleados = await Empleado.listar();
     res.render('admin/empleados', {
-      usuario: req.session.usuario,
+      usuario: null,
       empleados,
       error: null,
-      mensaje: req.session.mensaje || null,
+      mensaje: null,
     });
-    req.session.mensaje = null;
   } catch (err) {
     next(err);
   }
@@ -33,33 +30,37 @@ router.post('/admin/empleados', async (req, res, next) => {
     const password = req.body.password || '';
     const rol = req.body.rol === 'admin' ? 'admin' : 'empleado';
 
-    if (!numeroEmpleado || !nombre || !password) {
+    // Re-renderiza el listado con un error o un mensaje de éxito.
+    async function responder(status, { error = null, mensaje = null }) {
       const empleados = await Empleado.listar();
-      return res.status(400).render('admin/empleados', {
-        usuario: req.session.usuario,
-        empleados,
-        error: 'Todos los campos son obligatorios.',
-        mensaje: null,
+      return res
+        .status(status)
+        .render('admin/empleados', { usuario: null, empleados, error, mensaje });
+    }
+
+    if (!numeroEmpleado || !nombre || !password) {
+      return responder(400, { error: 'Todos los campos son obligatorios.' });
+    }
+
+    if (await Empleado.buscarPorNumero(numeroEmpleado)) {
+      return responder(409, {
+        error: `El número de empleado "${numeroEmpleado}" ya está registrado.`,
       });
     }
 
-    const existente = await Empleado.buscarPorNumero(numeroEmpleado);
-    if (existente) {
-      const empleados = await Empleado.listar();
-      return res.status(409).render('admin/empleados', {
-        usuario: req.session.usuario,
-        empleados,
-        error: `El número de empleado "${numeroEmpleado}" ya está registrado.`,
-        mensaje: null,
+    // Las contraseñas deben ser únicas: con ellas se identifica el check.
+    if (await Empleado.passwordEnUso(password)) {
+      return responder(409, {
+        error:
+          'Esa contraseña ya está en uso por otro trabajador. Elige una distinta ' +
+          '(deben ser únicas, porque con la contraseña se identifica el checado).',
       });
     }
 
     await Empleado.crear({ numeroEmpleado, nombre, password, rol });
-    req.session.mensaje = {
-      tipo: 'ok',
-      texto: `Empleado "${nombre}" dado de alta correctamente.`,
-    };
-    res.redirect('/admin/empleados');
+    return responder(201, {
+      mensaje: { tipo: 'ok', texto: `Empleado "${nombre}" dado de alta correctamente.` },
+    });
   } catch (err) {
     next(err);
   }

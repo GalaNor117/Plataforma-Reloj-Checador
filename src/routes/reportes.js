@@ -8,12 +8,10 @@ const {
   nombreArchivoParticular,
   nombreArchivoGeneral,
 } = require('../services/reporteExcel');
-const { requireLogin, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Toda la sección de reportes es solo para administradores.
-router.use(requireLogin, requireAdmin);
+// NOTA: esta sección se accede directamente por URL (no hay menú ni login).
 
 // Envía un workbook como descarga .xlsx
 async function enviarExcel(res, workbook, nombre) {
@@ -41,7 +39,7 @@ router.get('/reportes', async (req, res, next) => {
     const ahora = new Date();
     const empleados = await Empleado.listar();
     res.render('reportes', {
-      usuario: req.session.usuario,
+      usuario: null,
       empleados,
       anioActual: ahora.getFullYear(),
       mesActual: ahora.getMonth() + 1,
@@ -63,7 +61,7 @@ router.get('/reportes/general', async (req, res, next) => {
       return res.status(400).render('error', {
         titulo: 'Datos inválidos',
         mensaje: 'Selecciona un mes y un año válidos.',
-        usuario: req.session.usuario,
+        usuario: null,
       });
     }
 
@@ -85,7 +83,7 @@ router.get('/reportes/particular', async (req, res, next) => {
       return res.status(400).render('error', {
         titulo: 'Datos inválidos',
         mensaje: 'Selecciona un trabajador, un mes y un año válidos.',
-        usuario: req.session.usuario,
+        usuario: null,
       });
     }
 
@@ -94,7 +92,7 @@ router.get('/reportes/particular', async (req, res, next) => {
       return res.status(404).render('error', {
         titulo: 'Empleado no encontrado',
         mensaje: 'No existe el empleado solicitado.',
-        usuario: req.session.usuario,
+        usuario: null,
       });
     }
 
